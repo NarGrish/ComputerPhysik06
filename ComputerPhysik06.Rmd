@@ -30,19 +30,7 @@ $\bra{\Psi}\ket{\Psi}$ $\expval{A}{\Psi}$
 
 # Implementation des numerischen Verfahrens
 
-Nach der Courant-Friedrichs-Lewy Stabilitätsbedingung müssen wir bei der Schrittweitenwahl beachten, dass stets
 
-\begin{equation}
-  1 \geq c\frac{\Delta t}{ \Delta x}
-\end{equation}
-
-gilt. Setzen wir $\Xi$ und $\tau$ ein, so erhalten wir nach einmaligem Umstellen die Ungleichung
-
-\begin{equation} \label{stabi}
-  \Delta \Xi \geq \frac{cl}{cl}\Delta \tau = \Delta \tau.
-\end{equation}
-
-Wir müssen also darauf achten, die $\tau$-Schritte kleiner als die $\Xi$-Schritte zu halten.
 
 ```{Rcpp}
 #include<Rcpp.h>
@@ -52,8 +40,45 @@ Wir müssen also darauf achten, die $\tau$-Schritte kleiner als die $\Xi$-Schrit
 
 using namespace Rcpp;
 
+// Berechnung des Skalierungsvektors: m = 0, pos = 0, dim(vektor) = n
+void Hg_Rekursiv(const int n, int m, int l, int pos, std::vector<double>& vektor){
+  vektor[pos] = (double)(n - l);
+  for (int i = m; i < n; i++){
+    Hg_Rekursiv(n, (i + 1), l+2 , pos + pow(2,i), vektor);
+  }
+}
 
+//[[Rcpp::export]]
+std::vector<double> g_Vektor(const int n){
+  std::vector<double> vektor(pow(2,n));
+  Hg_Rekursiv(n, 0, 0 , 0, vektor);
+  return vektor;
+}
 
+//[[Rcpp::export]]
+std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const double g, const int n){
+  int size = pow(2,n);
+  std::vector<double> neu(size);
+  for (int i = 0; i < size; i++){
+    neu[i] = gv[i]*g*vektor[i];
+  }
+  /*for (int i = 0; i < n; i++){
+    for (int j = 0; j < 4; j++){
+      neu[i*4+j] = vektor[size-i*4-4+j];
+    }
+  }
+  for (int i = 0; i < (n-2); i++){
+    int gross = pow(2,n-i-2);
+    for (int grob = 0; grob < pow(2,i); grob++){
+      for (int medium = 0; medium < 4; medium++){
+        for (int j = 0; j < pow(2,n-i-2); j++){
+          neu[(grob*4+medium)*gross+j] = vektor[size+(-4*(grob+1)+medium+1)*gross-j-1];
+        }
+      }
+    }
+  }*/
+  return neu;
+}
 ```
 
 ## Stabilitätsüberprüfung
@@ -61,7 +86,12 @@ using namespace Rcpp;
 Wir wollen am Beispiel des $\gamma = 0$ Falls überprüfen, ob unsere Methodik stabil ist. Wir würden erwarten, dass die mittlere Amplitude über die Zeit konstant bleibt, und tragen hierzu die Summe aller Funktionspunkte grafisch gegen die Zeit auf:
 
 ```{r, echo=FALSE, fig.cap="\\label{fig:stabilitaet} Stabilität bei keiner Abschwächung", fig.width=7,fig.height=4}
-
+a = c(1,0,5,0)
+g = g_Vektor(2)
+b = H(a, g, 0.5, 2)
+a
+g
+b
 ```
 
 Wie wir sehen können, bleibt die Amplitudensumme über dem betrachteten Bereich sehr konstant und wir können die Methode im Folgenden auf ein gedämpftes System anwenden.
