@@ -1,0 +1,78 @@
+---
+title: 'Übung 06: Quanten Isingmodell'
+author: "Tobias Blesgen und Leonardo Thome"
+date: "21.07.2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+header-includes: 
+ - \usepackage{amssymb}
+ - \usepackage{amsmath}
+ - \usepackage[ngerman]{babel}
+ - \usepackage{physics}
+ - \bibliographystyle{unsrtnat}
+---
+
+[//]: # Ausführbefehl im allgemeinen: ``render("ComputerPhysik06.Rmd")``
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Einführung
+
+\begin{equation}
+  H = \sum^{N-2}_{i=0} \sigma_i^x \otimes \sigma^x_{i+1} + g \sum_{i=0}^{N-1} \sigma^z_i
+\end{equation}
+
+$\bra{\Psi}\ket{\Psi}$ $\expval{A}{\Psi}$
+
+# Implementation des numerischen Verfahrens
+
+Nach der Courant-Friedrichs-Lewy Stabilitätsbedingung müssen wir bei der Schrittweitenwahl beachten, dass stets
+
+\begin{equation}
+  1 \geq c\frac{\Delta t}{ \Delta x}
+\end{equation}
+
+gilt. Setzen wir $\Xi$ und $\tau$ ein, so erhalten wir nach einmaligem Umstellen die Ungleichung
+
+\begin{equation} \label{stabi}
+  \Delta \Xi \geq \frac{cl}{cl}\Delta \tau = \Delta \tau.
+\end{equation}
+
+Wir müssen also darauf achten, die $\tau$-Schritte kleiner als die $\Xi$-Schritte zu halten.
+
+```{Rcpp}
+#include<Rcpp.h>
+#include<vector>
+#include<algorithm>
+#include<math.h>  
+
+using namespace Rcpp;
+
+
+
+```
+
+## Stabilitätsüberprüfung
+
+Wir wollen am Beispiel des $\gamma = 0$ Falls überprüfen, ob unsere Methodik stabil ist. Wir würden erwarten, dass die mittlere Amplitude über die Zeit konstant bleibt, und tragen hierzu die Summe aller Funktionspunkte grafisch gegen die Zeit auf:
+
+```{r, echo=FALSE, fig.cap="\\label{fig:stabilitaet} Stabilität bei keiner Abschwächung", fig.width=7,fig.height=4}
+
+```
+
+Wie wir sehen können, bleibt die Amplitudensumme über dem betrachteten Bereich sehr konstant und wir können die Methode im Folgenden auf ein gedämpftes System anwenden.
+
+
+# Fazit
+Durch das Umformen der DGL zur Gleichung \ref{Punktformel} ließ sich der zeitliche Schwingungsverlauf örtlich bestimmen.
+
+
+\begin{thebibliography}{99}
+\bibitem{demtroeder} 
+Wolfgang Demtröder, \textit{Experimentalphysik 1, Mechanik und Wärme}, SpringerSpektrum, Auflage 8, 2018, Seite 334.
+
+\end{thebibliography}
