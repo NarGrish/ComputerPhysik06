@@ -68,7 +68,6 @@ double v_Norm(vector<double> const& u) {
 }
 
 // Zufälliger Startvektor
-//[[Rcpp::export]]
 std::vector<double> random_V(const int l){
   std::vector<double> vektor(l);
   random_device rd; 
@@ -84,7 +83,7 @@ std::vector<double> random_V(const int l){
   return vektor;
 }
 
-//[[Rcpp::export]]
+// Anwendung von H
 std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const double g, const int n){
   int size = pow(2,n);
   std::vector<double> neu(size);
@@ -111,10 +110,25 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
 }
 
 // Hauptfunktion zur Eigenwertbestimmung
-std::vector<double> eigen(const int n, const int g){
+//[[Rcpp::export]]
+std::vector<double> eigen(const int n, const int g, const int max){
   const int l = pow(2,n);
-  std::vector<double> vektor(l);
+  std::vector<double> vektor = random_V(l);
   std::vector<double> g_vektor = g_Vektor(n);
+  double norm;
+  
+  for(int i=0; i<max; i++){
+    vektor = H(vektor, g_vektor, g, n);
+    norm = v_Norm(vektor);
+    
+    Rprintf("\n - - %d - - \n", i);
+    
+    for (int j = 0; j < l; j++){
+      vektor[j] /= norm;
+      Rprintf(": %f :", vektor[j]);
+    }
+    
+  }
   return vektor;
 }
 
@@ -126,8 +140,8 @@ std::vector<double> eigen(const int n, const int g){
 ## Stabilitätsüberprüfung
 
 ```{r}
-a = random_V(3)
-a
+a = eigen(4, 0.5, 10)
+
 ```
 
 
