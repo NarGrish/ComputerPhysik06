@@ -37,10 +37,13 @@ $\bra{\Psi}\ket{\Psi}$ $\expval{A}{\Psi}$
 #include<vector>
 #include<algorithm>
 #include<math.h>  
+#include <random>
+#include <iostream>
 
 using namespace Rcpp;
+using namespace std;
 
-// Berechnung des Skalierungsvektors: m = 0, pos = 0, dim(vektor) = n
+// Berechnungsschritt des Skalierungsvektors: m = 0, pos = 0, dim(vektor) = n
 void Hg_Rekursiv(const int n, int m, int l, int pos, std::vector<double>& vektor){
   vektor[pos] = (double)(n - l);
   for (int i = m; i < n; i++){
@@ -48,10 +51,36 @@ void Hg_Rekursiv(const int n, int m, int l, int pos, std::vector<double>& vektor
   }
 }
 
-//[[Rcpp::export]]
+// Skalierungsvektor (rechtes H)
 std::vector<double> g_Vektor(const int n){
   std::vector<double> vektor(pow(2,n));
   Hg_Rekursiv(n, 0, 0 , 0, vektor);
+  return vektor;
+}
+
+// Normierungsbestimmung
+double v_Norm(vector<double> const& u) {
+    double sum = 0.;
+    for (int i = 0; i < u.size(); ++i) {
+        sum += u[i] * u[i];
+    }
+    return sqrt(sum);
+}
+
+// Zufälliger Startvektor
+//[[Rcpp::export]]
+std::vector<double> random_V(const int l){
+  std::vector<double> vektor(l);
+  random_device rd; 
+  mt19937 gen(rd()); 
+  uniform_real_distribution<> dis(0,1.0);
+  for (int i = 0; i < l; ++i) {
+    vektor[i] = dis(gen);
+  }
+  double norm = v_Norm(vektor);
+  for (int i = 0; i < l; i++){
+    vektor[i] /= norm;
+  }
   return vektor;
 }
 
@@ -80,9 +109,27 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
   }
   return neu;
 }
+
+// Hauptfunktion zur Eigenwertbestimmung
+std::vector<double> eigen(const int n, const int g){
+  const int l = pow(2,n);
+  std::vector<double> vektor(l);
+  std::vector<double> g_vektor = g_Vektor(n);
+  return vektor;
+}
+
+
 ```
 
+
+
 ## Stabilitätsüberprüfung
+
+```{r}
+a = random_V(3)
+a
+```
+
 
 Wir wollen am Beispiel des $\gamma = 0$ Falls überprüfen, ob unsere Methodik stabil ist. Wir würden erwarten, dass die mittlere Amplitude über die Zeit konstant bleibt, und tragen hierzu die Summe aller Funktionspunkte grafisch gegen die Zeit auf:
 
