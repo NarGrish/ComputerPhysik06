@@ -37,8 +37,7 @@ $\bra{\Psi}\ket{\Psi}$ $\expval{A}{\Psi}$
 #include<vector>
 #include<algorithm>
 #include<math.h>  
-#include <random>
-#include <iostream>
+#include<random>
 
 using namespace Rcpp;
 using namespace std;
@@ -100,8 +99,8 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
     for (int grob = 0; grob < pow(2,i); grob++){
       for (int medium = 0; medium < 4; medium++){
         for (int j = 0; j < pow(2,n-i-2); j++){
-          neu[(grob*4+medium)*mittel+j] += vektor[j+(4*(grob+1)-medium)*mittel-2];
-          //Rprintf("i=%d j=%d: %d; %d \n", i, j, (grob*4+medium)*mittel+j, j+(4*(grob+1)-medium)*mittel-2);
+          neu[(grob*4+medium)*mittel+j] += vektor[j+(4*(grob)+3-medium)*mittel];
+          //Rprintf("i=%d j=%d: %d; %d \n", i, j, (grob*4+medium)*mittel+j, j+(4*(grob)+3-medium)*mittel);
         }
       }
     }
@@ -132,6 +131,37 @@ std::vector<double> eigen(const int n, const int g, const int max){
   return vektor;
 }
 
+// Hauptfunktion zur Eigenwertbestimmung
+//[[Rcpp::export]]
+double eigenwert(const int n, const int g, const int max){
+  const int l = pow(2,n);
+  std::vector<double> vektor = random_V(l);
+  std::vector<double> vektor2 = random_V(l);
+  std::vector<double> g_vektor = g_Vektor(n);
+  double norm;
+  double sum;
+  
+  for(int i=0; i<max; i++){
+    vektor = H(vektor, g_vektor, g, n);
+    norm = v_Norm(vektor);
+    sum = 0;
+    for(int j=0;j<l;j++){
+      sum += vektor2[j]*vektor[j];
+    }
+    
+    //Rprintf("\n - - %d - - \n", i);
+    //Rprintf("%f \n", sum);
+    
+    for (int j = 0; j < l; j++){
+      vektor[j] /= norm;
+      //Rprintf(": %f :", vektor[j]);
+    }
+    
+  }
+  
+  return sum;
+}
+
 
 ```
 
@@ -140,7 +170,10 @@ std::vector<double> eigen(const int n, const int g, const int max){
 ## Stabilitätsüberprüfung
 
 ```{r}
-a = eigen(4, 0.5, 10)
+a = eigenwert(4, 0.5, 1000)
+print(a)
+a = eigenwert(4, 0.5, 1001)
+print(a)
 
 ```
 
@@ -177,6 +210,15 @@ b3
 a4
 b4
 ```
+
+
+```{r}
+
+print(g_Vektor(16))
+
+
+```
+
 
 Wie wir sehen können, bleibt die Amplitudensumme über dem betrachteten Bereich sehr konstant und wir können die Methode im Folgenden auf ein gedämpftes System anwenden.
 
