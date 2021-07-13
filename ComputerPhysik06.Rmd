@@ -22,11 +22,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Einführung
 
+Das Isingmodell beschreibt die Gitterinteraktionen für Wellenausbreitungen. Um die Ausbreitung einer transversalen Welle auf einem eindimensionalen Gitter zu beobachten, schreiben wir den Hamilton-Operator cer $N$ Gitterpunkte als:
+
 \begin{equation}
-  H = \sum^{N-2}_{i=0} \sigma_i^x \otimes \sigma^x_{i+1} + g \sum_{i=0}^{N-1} \sigma^z_i
+  H = \sum^{N-2}_{i=0} \sigma_i^x \otimes \sigma^x_{i+1} + g \sum_{i=0}^{N-1} \sigma^z_i.
 \end{equation}
 
-$\bra{\Psi}\ket{\Psi}$ $\expval{A}{\Psi}$
+Wir werden ihn auf Zustände basierend auf der Basis des Tensorprodukts aller Einspin-Zustände ($\ket{00..00}$ bis $\ket{11..11}$) anwenden um ihn auf seine Grundzustandsenergie und -wellenfunktion, zu untersuchen. Das $g$ stellt hierbei die Kopplung an ein externes Feld.
+
+Anschließend werden wir für $g=1$ den Phasenübergang für die Magnetisierung 
+
+\begin{equation}
+  M = \frac{1}{N} \bra{\psi} \sum_{i=0}^{N-1} \sigma_i^z \ket{\psi}
+\end{equation}
+
+betrachten.
 
 # Implementation des numerischen Verfahrens
 
@@ -89,9 +99,10 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
   for (int i = 0; i < size; i++){
     neu[i] = gv[i]*g*vektor[i];
   }
-  for (int i = 0; i < n-1; i++){
+  for (int i = 0; i < pow(2,n-2); i++){
     for (int j = 0; j < 4; j++){
       neu[i*4+j] += vektor[(i+1)*4-j-1];
+      //Rprintf("- %d -\n",(i+1)*4-j-1 );
     }
   }
   for (int i = 0; i < (n-2); i++){
@@ -110,7 +121,7 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
 
 // Hauptfunktion zur Eigenwertbestimmung
 //[[Rcpp::export]]
-std::vector<double> eigen(const int n, const int g, const int max){
+std::vector<double> eigen(const int n, const double g, const int max){
   const int l = pow(2,n);
   std::vector<double> vektor = random_V(l);
   std::vector<double> g_vektor = g_Vektor(n);
@@ -126,14 +137,13 @@ std::vector<double> eigen(const int n, const int g, const int max){
       vektor[j] /= norm;
       Rprintf(": %f :", vektor[j]);
     }
-    
   }
   return vektor;
 }
 
 // Hauptfunktion zur Eigenwertbestimmung
 //[[Rcpp::export]]
-double eigenwert(const int n, const int g, const int max){
+double eigenwert(const int n, const double g, const int max){
   const int l = pow(2,n);
   std::vector<double> vektor = random_V(l);
   std::vector<double> vektor2 = random_V(l);
@@ -148,20 +158,34 @@ double eigenwert(const int n, const int g, const int max){
     for(int j=0;j<l;j++){
       sum += vektor2[j]*vektor[j];
     }
-    
-    //Rprintf("\n - - %d - - \n", i);
-    //Rprintf("%f \n", sum);
-    
     for (int j = 0; j < l; j++){
       vektor[j] /= norm;
       //Rprintf(": %f :", vektor[j]);
     }
-    
   }
-  
   return sum;
 }
 
+
+// Matrixausgabe
+//[[Rcpp::export]]
+void matrixausgabe(const int n, const double g){
+  int l = pow(2,n);
+  std::vector<double> vektor(l);
+  std::vector<double> g_vektor = g_Vektor(n);
+  for (int i = 0; i<l; i++){
+    for (int j = 0; j<l; j++){
+      vektor[j] = 0;
+    }
+    vektor[i] = 1;
+    vektor = H(vektor, g_vektor, g, n);
+    for (int j = 0; j<l; j++){
+      Rprintf("  %d  ", (int)(vektor[j]));
+    }
+    Rprintf("\n");
+  }
+  Rprintf("\n");
+}
 
 ```
 
@@ -175,49 +199,27 @@ print(a)
 a = eigenwert(4, 0.5, 1001)
 print(a)
 
+ca = 1:5
+a = 1:5
+
+for (element in ca){
+  a[element] = eigenwert(element*2, 0.5, 1001)
+}
+plot((1:5)*2,a,"l")
+
+
 ```
+
+```{r}
+matrixausgabe(2,10)
+matrixausgabe(3,10)
+matrixausgabe(4,10)
+
+```
+
 
 
 Wir wollen am Beispiel des $\gamma = 0$ Falls überprüfen, ob unsere Methodik stabil ist. Wir würden erwarten, dass die mittlere Amplitude über die Zeit konstant bleibt, und tragen hierzu die Summe aller Funktionspunkte grafisch gegen die Zeit auf:
-
-```{r, echo=FALSE, fig.cap="\\label{fig:stabilitaet} Stabilität bei keiner Abschwächung", fig.width=7,fig.height=4}
-a1 = c(1,0,0,0,0,0,0,0)
-g = g_Vektor(3)
-b1 = H(a1, g, 0.02, 3)
-g
-a1
-b1
-
-```
-
-```{r, echo=FALSE, fig.cap="\\label{fig:stabilitaet} Stabilität bei keiner Abschwächung", fig.width=7,fig.height=4}
-a1 = c(1,0,0,0)
-a2 = c(0,1,0,0)
-a3 = c(0,0,1,0)
-a4 = c(0,0,0,1)
-g = g_Vektor(2)
-b1 = H(a1, g, 0.02, 2)
-b2 = H(a2, g, 0.02, 2)
-b3 = H(a3, g, 0.02, 2)
-b4 = H(a4, g, 0.02, 2)
-g
-a1
-b1
-a2
-b2
-a3
-b3
-a4
-b4
-```
-
-
-```{r}
-
-print(g_Vektor(16))
-
-
-```
 
 
 Wie wir sehen können, bleibt die Amplitudensumme über dem betrachteten Bereich sehr konstant und wir können die Methode im Folgenden auf ein gedämpftes System anwenden.
