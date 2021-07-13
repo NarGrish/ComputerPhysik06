@@ -130,42 +130,26 @@ std::vector<double> eigen(const int n, const double g, const int max){
   for(int i=0; i<max; i++){
     vektor = H(vektor, g_vektor, g, n);
     norm = v_Norm(vektor);
-    
-    Rprintf("\n - - %d - - \n", i);
-    
     for (int j = 0; j < l; j++){
       vektor[j] /= norm;
-      Rprintf(": %f :", vektor[j]);
     }
   }
   return vektor;
 }
 
-// Hauptfunktion zur Eigenwertbestimmung
 //[[Rcpp::export]]
-double eigenwert(const int n, const double g, const int max){
+double eigenwert(std::vector<double> eigenvektor, const double g, const int n){
   const int l = pow(2,n);
-  std::vector<double> vektor = random_V(l);
-  std::vector<double> vektor2 = random_V(l);
   std::vector<double> g_vektor = g_Vektor(n);
-  double norm;
-  double sum;
-  
-  for(int i=0; i<max; i++){
-    vektor = H(vektor, g_vektor, g, n);
-    norm = v_Norm(vektor);
-    sum = 0;
-    for(int j=0;j<l;j++){
-      sum += vektor2[j]*vektor[j];
+  std::vector<double> h_vektor = H(eigenvektor, g_vektor, g, n);
+  double norm = v_Norm(eigenvektor);
+  double sum = 0;
+  for(int j=0;j<l;j++){
+      sum += eigenvektor[j]*h_vektor[j];
     }
-    for (int j = 0; j < l; j++){
-      vektor[j] /= norm;
-      //Rprintf(": %f :", vektor[j]);
-    }
-  }
+  sum /= norm;
   return sum;
-}
-
+}  
 
 // Matrixausgabe
 //[[Rcpp::export]]
@@ -187,36 +171,80 @@ void matrixausgabe(const int n, const double g){
   Rprintf("\n");
 }
 
+// Anwendung von H2
+std::vector<double> h_shift(std::vector<double> vektor, const double g, const int n, std::vector<double> eigenvektor){
+  std::vector<double> g_vektor = g_Vektor(n);
+  std::vector<double> h_vektor = H(vektor, g_vektor, g, n);
+  const int l = pow(2,n);
+  std::vector<double> neu(l);
+  const double eigenw = eigenwert(eigenvektor, g, n);
+  for (int i = 0; i < l; i++){
+    neu[i] = h_vektor[i];
+    for (int j = 0; j < l; j++){
+      neu[i] -= (eigenw*eigenvektor[i]*eigenvektor[j]); 
+    }
+  }
+  return neu;
+}
+
+// erogn
+//[[Rcpp::export]]
+std::vector<double> wellenfunktion(const int n, const double g, const int max){
+  // bestimmung des größten eigenwert-vektors
+  std::vector<double> grosser_vektor = eigen(n, g, max);
+  // bestimmung des kleinstenm eigenwert-vektors
+  const int l = pow(2,n);
+  std::vector<double> vektor = random_V(l);
+  std::vector<double> g_vektor = g_Vektor(n);
+  double norm;
+  for(int i=0; i<max; i++){
+    vektor = h_shift(vektor, g, n, grosser_vektor);
+    norm = v_Norm(vektor);
+    for (int j = 0; j < l; j++){
+      vektor[j] /= norm;
+    }
+  }
+  return vektor;
+}
+
 ```
 
 
 
 ## Stabilitätsüberprüfung
 
-```{r}
-a = eigenwert(4, 0.5, 1000)
-print(a)
-a = eigenwert(4, 0.5, 1001)
-print(a)
 
-ca = 1:5
-a = 1:5
+
+```{r}
+
+
+ca = 2:10
+a = 2:10
+d = 1:10
 
 for (element in ca){
-  a[element] = eigenwert(element*2, 0.5, 1001)
+  b = eigen(element, 0, 1001)
+  a[element-1] = eigenwert(b, 0,  element)
 }
-plot((1:5)*2,a,"l")
+plot((2:10),a,"l")
 
+for (color in d){
+  for (element in ca){
+    b = eigen(element, color/5, 1000)
+    k = eigenwert(b, color/5,element)
+    a[element-1] = k
+  }
+  lines((2:10),a,"l", col=rainbow(10)[color])
+}
+
+
+
+h =  wellenfunktion(4, 0.5, 1000)
+eigenwert(h, 0.5, 4)
+k =  eigen(4, 0.5, 1000)
+eigenwert(h, 0.5, 4)
 
 ```
-
-```{r}
-matrixausgabe(2,10)
-matrixausgabe(3,10)
-matrixausgabe(4,10)
-
-```
-
 
 
 Wir wollen am Beispiel des $\gamma = 0$ Falls überprüfen, ob unsere Methodik stabil ist. Wir würden erwarten, dass die mittlere Amplitude über die Zeit konstant bleibt, und tragen hierzu die Summe aller Funktionspunkte grafisch gegen die Zeit auf:
