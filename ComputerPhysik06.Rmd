@@ -47,7 +47,11 @@ betrachten.
 #include<vector>
 #include<algorithm>
 #include<math.h>  
+#include<iostream>
 #include<random>
+#include <stdio.h>
+#include <stdlib.h>
+#include<time.h>
 
 using namespace Rcpp;
 using namespace std;
@@ -79,16 +83,19 @@ double v_Norm(vector<double> const& u) {
 // Zufälliger Startvektor
 std::vector<double> random_V(const int l){
   std::vector<double> vektor(l);
-  random_device rd; 
-  mt19937 gen(rd()); 
-  uniform_real_distribution<> dis(0,1.0);
+  srand((time(NULL)));
+  //random_device rd; 
+  //mt19937 gen(rd()); 
+  //uniform_real_distribution<> dis(0.,1.);
   for (int i = 0; i < l; ++i) {
-    vektor[i] = dis(gen);
+    //vektor[i] = dis(gen);
+    vektor[i] = rand() % 100;
   }
   double norm = v_Norm(vektor);
   for (int i = 0; i < l; i++){
     vektor[i] /= norm;
   }
+  
   return vektor;
 }
 
@@ -143,11 +150,11 @@ double eigenwert(std::vector<double> eigenvektor, const double g, const int n){
   std::vector<double> g_vektor = g_Vektor(n);
   std::vector<double> h_vektor = H(eigenvektor, g_vektor, g, n);
   double norm = v_Norm(eigenvektor);
-  double sum = 0;
+  double sum = 0.;
   for(int j=0;j<l;j++){
       sum += eigenvektor[j]*h_vektor[j];
     }
-  sum /= norm;
+  sum /= (norm*norm);
   return sum;
 }  
 
@@ -238,11 +245,13 @@ for (color in d){
 }
 
 
+k =  eigen(2, 1, 10000)
+eigenwert(k, 1, 2)
+h =  wellenfunktion(2, 1, 10000)
+eigenwert(h, 1, 2)
 
-h =  wellenfunktion(4, 0.5, 1000)
-eigenwert(h, 0.5, 4)
-k =  eigen(4, 0.5, 1000)
-eigenwert(h, 0.5, 4)
+
+matrixausgabe(2,1)
 
 ```
 
