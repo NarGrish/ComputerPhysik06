@@ -128,7 +128,7 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
 
 // Hauptfunktion zur Eigenwertbestimmung
 //[[Rcpp::export]]
-std::vector<double> eigen(const int n, const double g, const int max){
+std::vector<double> eigene(const int n, const double g, const int max){
   const int l = pow(2,n);
   std::vector<double> vektor = random_V(l);
   std::vector<double> g_vektor = g_Vektor(n);
@@ -171,12 +171,53 @@ void matrixausgabe(const int n, const double g){
     vektor[i] = 1;
     vektor = H(vektor, g_vektor, g, n);
     for (int j = 0; j<l; j++){
-      Rprintf("  %d  ", (int)(vektor[j]));
+      Rprintf("%d ", (int)(vektor[j]));
     }
-    Rprintf("\n");
+    //Rprintf("\n");
   }
-  Rprintf("\n");
+  //Rprintf("\n");
 }
+
+// Matrix weitergabe
+//[[Rcpp::export]]
+std::vector<double> matrix1(const int n, const double g){
+  int l = pow(2,n);
+  std::vector<double> vektor(l);
+  std::vector<double> Matrix(l*l);
+  std::vector<double> g_vektor = g_Vektor(n);
+  for (int i = 0; i<l; i++){
+    for (int j = 0; j<l; j++){
+      vektor[j] = 0;
+    }
+    vektor[i] = 1;
+    vektor = H(vektor, g_vektor, g, n);
+    for (int j = 0; j<l; j++){
+      Matrix[l*i+j] = vektor[j];
+    }
+  }
+  return Matrix;
+}
+
+// Matrix weitergabe Magneton
+//[[Rcpp::export]]
+std::vector<double> matrix2(const int n){
+  int l = pow(2,n);
+  std::vector<double> vektor(l);
+  std::vector<double> Matrix(l*l);
+  std::vector<double> g_neu_vektor = g_Vektor(n);
+  
+  
+  for (int i = 0; i<l; i++){
+    for (int j = 0; j<l; j++){
+      Matrix[l*i+j] = 0;
+      if(i == j){
+        Matrix[l*i+j] = g_neu_vektor[i];
+      }
+    }
+  }
+  return Matrix;
+}
+
 
 // Anwendung von H2
 std::vector<double> h_shift(std::vector<double> vektor, const double g, const int n, std::vector<double> eigenvektor){
@@ -198,7 +239,7 @@ std::vector<double> h_shift(std::vector<double> vektor, const double g, const in
 //[[Rcpp::export]]
 std::vector<double> wellenfunktion(const int n, const double g, const int max){
   // bestimmung des größten eigenwert-vektors
-  std::vector<double> grosser_vektor = eigen(n, g, max);
+  std::vector<double> grosser_vektor = eigene(n, g, max);
   // bestimmung des kleinstenm eigenwert-vektors
   const int l = pow(2,n);
   std::vector<double> vektor = random_V(l);
@@ -223,21 +264,21 @@ std::vector<double> wellenfunktion(const int n, const double g, const int max){
 
 
 ```{r}
-
+#Test
 
 ca = 2:10
 a = 2:10
 d = 1:10
 
 for (element in ca){
-  b = eigen(element, 0, 1001)
+  b = eigene(element, 0, 1001)
   a[element-1] = eigenwert(b, 0,  element)
 }
 plot((2:10),a,"l")
 
 for (color in d){
   for (element in ca){
-    b = eigen(element, color/5, 1000)
+    b = eigene(element, color/5, 1000)
     k = eigenwert(b, color/5,element)
     a[element-1] = k
   }
@@ -245,16 +286,73 @@ for (color in d){
 }
 
 
-k =  eigen(2, 1, 10000)
+k =  eigene(2, 1, 10000)
 eigenwert(k, 1, 2)
 h =  wellenfunktion(2, 1, 10000)
 eigenwert(h, 1, 2)
 
-
-matrixausgabe(2,1)
-
+n = 2
+A <- matrix(matrix1(n,1), nrow = n^2, ncol = n^2)
+ew <-eigen(A)
+min(unlist(ew[1]))
 ```
+```{r}
+#Eigenwerte mit r für Energie g Kopplung
 
+
+g = 1
+k = 2
+ew <- eigen(matrix(matrix1(k,g), nrow = k^2, ncol = k^2))
+min(unlist(ew[1]))
+
+
+n <- c(2,4,6,8,10)
+g <- seq(0,2, length.out= 10)
+a <- rep(0,length(g))
+
+plot(0,0,ylim =c(0,-20),xlim = c(0,2),"n")
+
+
+for (N in n){
+  i = 1
+  for (G in g){
+    ew <- eigen(matrix(matrix1(N,G), nrow = 2^N, ncol = 2^N))
+    a[i] = min(unlist(ew[1]))
+    i = i+1
+  }
+  lines(g,a,"l", col=rainbow(length(g))[N])
+}
+```
+```{r}
+#Eigenwerte mit r für Energie g Kopplung
+
+
+g = 1
+k = 2
+ew <- eigen(matrix(matrix1(k,g), nrow = k^2, ncol = k^2))
+
+ew <- eigen(matrix(matrix1(k,g), nrow = 2^k, ncol = 2^k))
+ev <- ew$vectors[,which.min(unlist(ew$values))]
+ek <- drop(t(ev) %*% (ew$vectors %*% ev))
+
+n <- c(2,4,6,8,10)
+g <- seq(0,2, length.out= 10)
+a <- rep(0,length(g))
+
+plot(0,0,ylim =c(0,1),xlim = c(0,2),"n")
+
+
+for (N in n){
+  i = 1
+  for (G in g){
+    ew <- eigen(matrix(matrix1(N,G), nrow = 2^N, ncol = 2^N))
+    ev <- ew$vectors[,which.min(unlist(ew$values))]
+    a[i] <- -1/N*(drop(t(ev) %*% (matrix(matrix2(N), nrow = 2^N, ncol = 2^N) %*% ev)))
+    i = i+1
+  }
+  lines(g,a,"l", col=rainbow(length(g))[N])
+}
+```
 
 Wir wollen am Beispiel des $\gamma = 0$ Falls überprüfen, ob unsere Methodik stabil ist. Wir würden erwarten, dass die mittlere Amplitude über die Zeit konstant bleibt, und tragen hierzu die Summe aller Funktionspunkte grafisch gegen die Zeit auf:
 
