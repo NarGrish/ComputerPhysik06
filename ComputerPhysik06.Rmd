@@ -372,11 +372,4 @@ Die Magnetisierungen aller aufgetragenen Gitterpunktmengen konvergieren von eine
 Wir können also gut sehen, dass für eine Kopplung von 1 eine Phasenübergang von keiner Magnetisierung zu einer vollständigen Magnetisierung zu beobachten ist.
 
 # Fazit
-Durch das Umformen der DGL zur Gleichung \ref{Punktformel} ließ sich der zeitliche Schwingungsverlauf örtlich bestimmen.
-
-
-\begin{thebibliography}{99}
-\bibitem{demtroeder} 
-Wolfgang Demtröder, \textit{Experimentalphysik 1, Mechanik und Wärme}, SpringerSpektrum, Auflage 8, 2018, Seite 334.
-
-\end{thebibliography}
+Auch wenn unser Eigenwertsverfahren nicht funktioniert hat, konnten wir den Prozess nachvollziehen und berechnen. Das resultieren Ergebnis deckt sich mit unseren Erwartungen und der Phasenübergang konnte abgebildet werden.
