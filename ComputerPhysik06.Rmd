@@ -22,13 +22,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Einführung
 
-Das Isingmodell beschreibt die Gitterinteraktionen für Wellenausbreitungen. Um die Ausbreitung einer transversalen Welle auf einem eindimensionalen Gitter zu beobachten, schreiben wir den Hamilton-Operator cer $N$ Gitterpunkte als:
+Das Isingmodell beschreibt die Gitterinteraktionen für Wellenausbreitungen. Um die Ausbreitung einer transversalen Welle auf einem eindimensionalen Gitter zu beobachten, schreiben wir den Hamilton-Operator der $N$ Gitterpunkte als:
 
 \begin{equation}
   H = \sum^{N-2}_{i=0} \sigma_i^x \otimes \sigma^x_{i+1} + g \sum_{i=0}^{N-1} \sigma^z_i.
 \end{equation}
 
-Wir werden ihn auf Zustände basierend auf der Basis des Tensorprodukts aller Einspin-Zustände ($\ket{00..00}$ bis $\ket{11..11}$) anwenden um ihn auf seine Grundzustandsenergie und -wellenfunktion, zu untersuchen. Das $g$ stellt hierbei die Kopplung an ein externes Feld.
+Wir werden ihn, auf Zuständen basierend auf der Basis des Tensorprodukts aller Einspin-Zustände ($\ket{00..00}$ bis $\ket{11..11}$), anwenden, um ihn auf seine Grundzustandsenergie und -wellenfunktion, zu untersuchen. Das $g$ stellt hierbei die Kopplung an ein externes Feld.
 
 Anschließend werden wir für $g=1$ den Phasenübergang für die Magnetisierung 
 
@@ -40,6 +40,7 @@ betrachten.
 
 # Implementation des numerischen Verfahrens
 
+Der Hamiltonoperator in Matrixschreib weise wächst mit $2^{2N}$. Da wir bis zu $N=10$ Gitterpunkte betrachten wollen würde eine Implementation in Form von Matrixmultiplikationen eine zeitlich sehr aufwendige Anwendung werden. Da die Matrix mit $((N-1)2^N)_{H_0} + (2^N)_{H_1}$ besetzten Elementen recht schwach besetzt ist haben wir uns entschieden den Hamiltonoperator explizit als Funktion zu implementieren. So wird in einem \texttt{for}-Schleifen-System der Eingangsvektor $v$ in der Funktion \texttt{H}, mit dem zuvor für die Anzahl $N$ erzeugten \texttt{g_vektor}, zu $Hv$ überführt
 
 
 ```{Rcpp}
