@@ -40,8 +40,13 @@ betrachten.
 
 # Implementation des numerischen Verfahrens
 
-Der Hamiltonoperator in Matrixschreib weise wächst mit $2^{2N}$. Da wir bis zu $N=10$ Gitterpunkte betrachten wollen würde eine Implementation in Form von Matrixmultiplikationen eine zeitlich sehr aufwendige Anwendung werden. Da die Matrix mit $((N-1)2^N)_{H_0} + (2^N)_{H_1}$ besetzten Elementen recht schwach besetzt ist haben wir uns entschieden den Hamiltonoperator explizit als Funktion zu implementieren. So wird in einem \texttt{for}-Schleifen-System der Eingangsvektor $v$ in der Funktion \texttt{H}, mit dem zuvor für die Anzahl $N$ erzeugten \texttt{g_vektor}, zu $Hv$ überführt
+Der Hamiltonoperator in Matrixschreibweise wächst mit $2^{2N}$. Da wir bis zu $N=10$ Gitterpunkte betrachten wollen, würde eine Implementation in Form von Matrixmultiplikationen eine zeitlich sehr aufwendige Anwendung werden. Da die Matrix mit $((N-1)2^N)_{H_0} + (2^N)_{H_1}$ besetzten Elementen recht schwach besetzt ist, haben wir uns entschieden den Hamiltonoperator explizit als Funktion zu implementieren. So wird in einem \texttt{for}-Schleifen-System der Eingangsvektor $v$ in der Funktion \texttt{H}, mit dem zuvor für die Anzahl $N$ erzeugten \texttt{g_vektor}, zu $Hv$ überführt. 
 
+## Eigenwerte und Eigenvektor
+
+Um an den physikalisch interessanten Eigenvektor und den zugehörigen Eigenwert zu gelangen, haben wir versucht das Potenzverfahren zu implementieren. Dieses nimmt einen zufällig gewählten (normierten) Vektor und wendet ihn Auf den Operator an. Anschließend wird dieser Vektor normiert und das Verfahren beginnt von vorne. Der Vektor sollte nun mit hinreichend vielen Iterationen gegen der Vektor mit dem größten Eigenwert konvergieren. Sobald der Vektor sich nicht mehr deutlich ändert oder einer obere Schranke an Iterationen erreicht ist bricht das Verfahren ab und gibt den angenäherten Eigenvektor $\vec{e}$ aus. Den zugehörigen Eigenwert $\lambda$ erhalten wir aus der Operation $\vec{e} H \vec{e}$. Da dieses Verfahren nur den größten Eigenwert bestimmt muss anschließend die Operation um den Eigenwert $\lambda$ korregiert werden. Erneutes Anwenden des Verfahrens sollte den gesuchten niedrigsten Eigenwert ausgeben.
+
+Leider konnten wir in unserem Verfahren, auch nach einem vollständigen Neuschreiben, nicht den Fehler ausfindig machen und sehen uns gezwungen, für die weitere Auswertung die \texttt{eigen} Funktion von r zu verwenden.
 
 ```{Rcpp}
 #include<Rcpp.h>
@@ -258,13 +263,11 @@ std::vector<double> wellenfunktion(const int n, const double g, const int max){
 
 ```
 
-
-
-## Stabilitätsüberprüfung
+# Eigenwerte und Auswertung
 
 
 
-```{r}
+```{r, echo=FALSE, fig.cap="\\label{fig:test} Test Verlauf", fig.width=7,fig.height=4}
 #Test
 
 ca = 2:10
@@ -297,9 +300,12 @@ A <- matrix(matrix1(n,1), nrow = n^2, ncol = n^2)
 ew <-eigen(A)
 min(unlist(ew[1]))
 ```
-```{r}
-#Eigenwerte mit r für Energie g Kopplung
+## Kopplungsabhängiges Verhalten
 
+Wir wollen uns das Verhalten der Grundzustandsenergie (dem Eigenwert von $H$) für verschiedene $g$ ansehen. Hierzu tragen wir in Abb. \ref{fig:abb1} den Betrag der berechneten Grundzustandsenergien gegen die Kopplung $g$ auf.
+
+```{r, echo=FALSE, fig.cap="\\label{fig:abb1} Eigenwertverhalten für g-Kopplungen"}
+#Eigenwerte mit r für Energie g Kopplung
 
 g = 1
 k = 2
@@ -324,9 +330,16 @@ for (N in n){
   lines(g,a,"l", col=rainbow(length(g))[N])
 }
 ```
-```{r}
-#Eigenwerte mit r für Energie g Kopplung
+Man kann ein klar divergierendes Verhalten der Grundzustandsenergien für größere Kopplungen erkennen. So starten die Grundzustands energie für verschiedene Gitterpunktmengen $N$ in gleichmäßigen Abständen und steigen betraglich für größere Kopplungen an. Über den gesammten Verlauf gilt für jedes $g_0$, dass bei $g=g_0$ die Energien einheitliche Abstände zu einander einhalten, wobei diese Abstände jedoch ebenfalls anwachsen.
 
+Der Trend zu betraglich größeren Energien kann im physikalischen Sinne damit gedeutet werden, dass die Gitterpunkte zunehmend stärker von dem externen Feld beeinflusst werden und schwingen. Somit steigt ihre Energie betraglich monoton mit stärkeren Kopplungen an.
+
+## Magnetisierungsverhalten
+
+Wie in der Einleitung beschrieben, erwarten wir einen Phasenübergang in der Magnetisierung für $g=1$. Wie lassen uns daher für die verschiedenen Knotenmengen $N$ die Magnetisierung $M$ in Abb. \ref{fig:abb2} auftragen.
+
+```{r, fig.cap="\\label{fig:abb2} Phasenübergang der Magnetisierung"}
+#Eigenwerte mit r für Energie g Kopplung
 
 g = 1
 k = 2
@@ -354,12 +367,9 @@ for (N in n){
   lines(g,a,"l", col=rainbow(length(g))[N])
 }
 ```
+Die Magnetisierungen aller aufgetragenen Gitterpunktmengen konvergieren von einer Magnetisierung von 0 gegen 1. Während für große $N$ die Kurve eine ehr S-förmige Sättigungskurve beschreibt, beginnt die Kurve für $N=2$ in einer Geraden deren Steigung monoton fällt, bis die gegen 1 konvergiert.
 
-Wir wollen am Beispiel des $\gamma = 0$ Falls überprüfen, ob unsere Methodik stabil ist. Wir würden erwarten, dass die mittlere Amplitude über die Zeit konstant bleibt, und tragen hierzu die Summe aller Funktionspunkte grafisch gegen die Zeit auf:
-
-
-Wie wir sehen können, bleibt die Amplitudensumme über dem betrachteten Bereich sehr konstant und wir können die Methode im Folgenden auf ein gedämpftes System anwenden.
-
+Wir können also gut sehen, dass für eine Kopplung von 1 eine Phasenübergang von keiner Magnetisierung zu einer vollständigen Magnetisierung zu beobachten ist.
 
 # Fazit
 Durch das Umformen der DGL zur Gleichung \ref{Punktformel} ließ sich der zeitliche Schwingungsverlauf örtlich bestimmen.
