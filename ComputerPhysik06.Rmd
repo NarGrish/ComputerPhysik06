@@ -55,8 +55,8 @@ Leider konnten wir in unserem Verfahren, auch nach einem vollständigen Neuschre
 #include<math.h>  
 #include<iostream>
 #include<random>
-#include <stdio.h>
-#include <stdlib.h>
+#include<stdio.h>
+#include<stdlib.h>
 #include<time.h>
 
 using namespace Rcpp;
@@ -70,7 +70,7 @@ void Hg_Rekursiv(const int n, int m, int l, int pos, std::vector<double>& vektor
   }
 }
 
-// Skalierungsvektor (rechtes H)
+// Skalierungsvektor (rechter H Term)
 std::vector<double> g_Vektor(const int n){
   std::vector<double> vektor(pow(2,n));
   Hg_Rekursiv(n, 0, 0 , 0, vektor);
@@ -90,11 +90,7 @@ double v_Norm(vector<double> const& u) {
 std::vector<double> random_V(const int l){
   std::vector<double> vektor(l);
   srand((time(NULL)));
-  //random_device rd; 
-  //mt19937 gen(rd()); 
-  //uniform_real_distribution<> dis(0.,1.);
   for (int i = 0; i < l; ++i) {
-    //vektor[i] = dis(gen);
     vektor[i] = rand() % 100;
   }
   double norm = v_Norm(vektor);
@@ -115,7 +111,6 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
   for (int i = 0; i < pow(2,n-2); i++){
     for (int j = 0; j < 4; j++){
       neu[i*4+j] += vektor[(i+1)*4-j-1];
-      //Rprintf("- %d -\n",(i+1)*4-j-1 );
     }
   }
   for (int i = 0; i < (n-2); i++){
@@ -124,7 +119,6 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
       for (int medium = 0; medium < 4; medium++){
         for (int j = 0; j < pow(2,n-i-2); j++){
           neu[(grob*4+medium)*mittel+j] += vektor[j+(4*(grob)+3-medium)*mittel];
-          //Rprintf("i=%d j=%d: %d; %d \n", i, j, (grob*4+medium)*mittel+j, j+(4*(grob)+3-medium)*mittel);
         }
       }
     }
@@ -132,7 +126,7 @@ std::vector<double> H(std::vector<double> vektor, std::vector<double> gv, const 
   return neu;
 }
 
-// Hauptfunktion zur Eigenwertbestimmung
+// Hauptfunktion zur Eigenverktorbestimmung
 //[[Rcpp::export]]
 std::vector<double> eigene(const int n, const double g, const int max){
   const int l = pow(2,n);
@@ -150,6 +144,7 @@ std::vector<double> eigene(const int n, const double g, const int max){
   return vektor;
 }
 
+// Eigenwertbestimmung zum Eigenverktor
 //[[Rcpp::export]]
 double eigenwert(std::vector<double> eigenvektor, const double g, const int n){
   const int l = pow(2,n);
@@ -164,7 +159,7 @@ double eigenwert(std::vector<double> eigenvektor, const double g, const int n){
   return sum;
 }  
 
-// Matrixausgabe
+// Matrixausgabe als Kontrolle 
 //[[Rcpp::export]]
 void matrixausgabe(const int n, const double g){
   int l = pow(2,n);
@@ -179,14 +174,14 @@ void matrixausgabe(const int n, const double g){
     for (int j = 0; j<l; j++){
       Rprintf("%d ", (int)(vektor[j]));
     }
-    //Rprintf("\n");
+    Rprintf("\n");
   }
-  //Rprintf("\n");
+  Rprintf("\n");
 }
 
-// Matrix weitergabe
+// Matrix weitergabe von H an R um dort weiter zu Rechnen
 //[[Rcpp::export]]
-std::vector<double> matrix1(const int n, const double g){
+std::vector<double> matrixH(const int n, const double g){
   int l = pow(2,n);
   std::vector<double> vektor(l);
   std::vector<double> Matrix(l*l);
@@ -204,14 +199,13 @@ std::vector<double> matrix1(const int n, const double g){
   return Matrix;
 }
 
-// Matrix weitergabe Magneton
+// Matrix weitergabe von der Matrix für das Magneton an R
 //[[Rcpp::export]]
-std::vector<double> matrix2(const int n){
+std::vector<double> matrixM(const int n){
   int l = pow(2,n);
   std::vector<double> vektor(l);
   std::vector<double> Matrix(l*l);
   std::vector<double> g_neu_vektor = g_Vektor(n);
-  
   
   for (int i = 0; i<l; i++){
     for (int j = 0; j<l; j++){
@@ -225,7 +219,7 @@ std::vector<double> matrix2(const int n){
 }
 
 
-// Anwendung von H2
+// Anwendung von vom Shift um den Eigenwert aus der Matrix zu entfernen
 std::vector<double> h_shift(std::vector<double> vektor, const double g, const int n, std::vector<double> eigenvektor){
   std::vector<double> g_vektor = g_Vektor(n);
   std::vector<double> h_vektor = H(vektor, g_vektor, g, n);
@@ -241,9 +235,11 @@ std::vector<double> h_shift(std::vector<double> vektor, const double g, const in
   return neu;
 }
 
-// erogn
+// Eigenverktor der geshifteten Matrix, zum nächst größeren Eigenwert.
+// Ist jedoch abhänig vom Starvektor und erzeugt beim auswerten Teils einen 
+// größeren Eigenwert (falsch).
 //[[Rcpp::export]]
-std::vector<double> wellenfunktion(const int n, const double g, const int max){
+std::vector<double> eigene_shift(const int n, const double g, const int max){
   // bestimmung des größten eigenwert-vektors
   std::vector<double> grosser_vektor = eigene(n, g, max);
   // bestimmung des kleinstenm eigenwert-vektors
@@ -268,18 +264,20 @@ std::vector<double> wellenfunktion(const int n, const double g, const int max){
 
 
 ```{r, echo=FALSE, fig.cap="\\label{fig:test} Test Verlauf", fig.width=7,fig.height=4}
-#Test
+#Nach Methode in C++ 
 
 ca = 2:10
 a = 2:10
 d = 1:10
 
+# g gegen N für g = 0 und N = 2,4,6,8,10 (?)
 for (element in ca){
   b = eigene(element, 0, 1001)
   a[element-1] = eigenwert(b, 0,  element)
 }
 plot((2:10),a,"l")
 
+# nur für g bis  g = 2 
 for (color in d){
   for (element in ca){
     b = eigene(element, color/5, 1000)
@@ -289,16 +287,6 @@ for (color in d){
   lines((2:10),a,"l", col=rainbow(10)[color])
 }
 
-
-k =  eigene(2, 1, 10000)
-eigenwert(k, 1, 2)
-h =  wellenfunktion(2, 1, 10000)
-eigenwert(h, 1, 2)
-
-n = 2
-A <- matrix(matrix1(n,1), nrow = n^2, ncol = n^2)
-ew <-eigen(A)
-min(unlist(ew[1]))
 ```
 ## Kopplungsabhängiges Verhalten
 
@@ -307,26 +295,25 @@ Wir wollen uns das Verhalten der Grundzustandsenergie (dem Eigenwert von $H$) f�
 ```{r, echo=FALSE, fig.cap="\\label{fig:abb1} Eigenwertverhalten für g-Kopplungen"}
 #Eigenwerte mit r für Energie g Kopplung
 
-g = 1
-k = 2
-ew <- eigen(matrix(matrix1(k,g), nrow = k^2, ncol = k^2))
-min(unlist(ew[1]))
-
-
+#Eigeaben von N und g (Speicherverktor a)
 n <- c(2,4,6,8,10)
 g <- seq(0,2, length.out= 10)
 a <- rep(0,length(g))
 
+#Erzeugen leeren Plot
 plot(0,0,ylim =c(0,-20),xlim = c(0,2),"n")
 
-
+# Für N´s wird die Abhänigkeit von g zu E bestimmt.
 for (N in n){
   i = 1
   for (G in g){
-    ew <- eigen(matrix(matrix1(N,G), nrow = 2^N, ncol = 2^N))
+    #Eigenwert zur Matrix
+    ew <- eigen(matrix(matrixH(N,G), nrow = 2^N, ncol = 2^N))
+    #Speichern kleisten Eigenwert
     a[i] = min(unlist(ew[1]))
     i = i+1
   }
+  #Plot von g gegenüber den betimmten Eigenwerten (festes N)
   lines(g,a,"l", col=rainbow(length(g))[N])
 }
 ```
@@ -339,31 +326,29 @@ Der Trend zu betraglich größeren Energien kann im physikalischen Sinne damit g
 Wie in der Einleitung beschrieben, erwarten wir einen Phasenübergang in der Magnetisierung für $g=1$. Wie lassen uns daher für die verschiedenen Knotenmengen $N$ die Magnetisierung $M$ in Abb. \ref{fig:abb2} auftragen.
 
 ```{r, fig.cap="\\label{fig:abb2} Phasenübergang der Magnetisierung"}
-#Eigenwerte mit r für Energie g Kopplung
+#Eigenwerte mit r für Magnetisierung g Kopplung
 
-g = 1
-k = 2
-ew <- eigen(matrix(matrix1(k,g), nrow = k^2, ncol = k^2))
-
-ew <- eigen(matrix(matrix1(k,g), nrow = 2^k, ncol = 2^k))
-ev <- ew$vectors[,which.min(unlist(ew$values))]
-ek <- drop(t(ev) %*% (ew$vectors %*% ev))
-
+#Eigeaben von N und g (Speicherverktor a)
 n <- c(2,4,6,8,10)
 g <- seq(0,2, length.out= 10)
 a <- rep(0,length(g))
 
+#Erzeugen leeren Plot
 plot(0,0,ylim =c(0,1),xlim = c(0,2),"n")
 
-
+# Für N´s wird die Abhänigkeit von g zu M bestimmt.
 for (N in n){
   i = 1
   for (G in g){
-    ew <- eigen(matrix(matrix1(N,G), nrow = 2^N, ncol = 2^N))
+    #Eigenwerte/verktoren zu H Matrix
+    ew <- eigen(matrix(matrixH(N,G), nrow = 2^N, ncol = 2^N))
+    #Eigenverktoren zum kleinsten Eigenwert.
     ev <- ew$vectors[,which.min(unlist(ew$values))]
-    a[i] <- -1/N*(drop(t(ev) %*% (matrix(matrix2(N), nrow = 2^N, ncol = 2^N) %*% ev)))
+    #Matrix Vektor Multiplikation ergibt nun die Magnetisierung.
+    a[i] <- -1/N*(drop(t(ev) %*% (matrix(matrixM(N), nrow = 2^N, ncol = 2^N) %*% ev)))
     i = i+1
   }
+  #Plot von g gegenüber der Magnetisierung (festes N)
   lines(g,a,"l", col=rainbow(length(g))[N])
 }
 ```
